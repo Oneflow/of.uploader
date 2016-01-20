@@ -1,0 +1,13 @@
+{
+  "name": "of.uploader",
+  "version": "1.0.0",
+  "description": "loading files to print-box with percentage progress report",
+  "homepage": "https://github.com/oneflow/of.uploader",
+  "main": "src/index.js",
+  "authors": [
+    "Nigel Watson"
+  ],
+  "ignore": [
+    "/test/*"
+  ]
+}
