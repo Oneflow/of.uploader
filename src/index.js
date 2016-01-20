@@ -85,7 +85,7 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 	}
 
 	return {
-		uploadFileFromInput: uploadFile,
+		uploadFile: uploadFile,
 		uploadFileDirectly: uploadFileDirectly
 	};
 
