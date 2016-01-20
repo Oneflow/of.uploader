@@ -6,9 +6,8 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 
 	function uploadFile(fileElementId, uploadUrl, contentType, progress) {
 		return $q(function (resolve, reject) {
-
 			//validate input
-			if (!fileElementId) return reject("Invalid file element ID");
+			if (!fileElementId) return reject("Invalid file input");
 			if (!uploadUrl) return reject("Invalid upload URL");
 			if (!contentType) return reject("Invalid content type");
 			if (progress == undefined) progress = 0;
@@ -17,12 +16,28 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 			if (!fileEl) return reject("Invalid file element");
 
 			var uploadFile = fileEl[0].files[0];
-			if (!uploadFile) return reject("No File Selected");
+			if (!uploadFile) return reject("No File");
 
+			_uploadFile(uploadFile, uploadUrl, contentType, onProgress)
+				.then(resolve)
+				.catch(reject);
+
+			function onProgress(pr) {
+				progress = pr;
+				$rootScope.$broadcast(fileElementId+"-progress", progress);
+			}
+		});
+	}
+
+	function uploadFileDirectly(file, uploadUrl, contentType, onProgress) {
+		return _uploadFile(file, uploadUrl, contentType, onProgress);
+	}
+
+	function _uploadFile(uploadFile, uploadUrl, contentType, onProgress) {
+		return $q(function(resolve, reject) {
+			var progress = 0;
 			//create a request
 			var xhr = createCORSRequest(uploadUrl);
-			// progress = 0;
-
 			//complete the loading
 			xhr.onload = function () {
 				if (xhr.status == 200) {
@@ -31,35 +46,30 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 				} else {
 					progress = 0;
 				}
-				emitProgress();
+				_onProgress();
 			};
-
 			//deal with errors
 			xhr.onerror = function (err) {
 				progress = 0;
-				emitProgress();
+				_onProgress();
 				reject("Error Uploading File");
 			};
-
 			//on progress upload
 			xhr.upload.onprogress = function (e) {
 				if (e.lengthComputable) {
-					var percentLoaded = Math.round((e.loaded / e.total) * 100);
-					progress = percentLoaded;
-					emitProgress();
+					progress = Math.round((e.loaded / e.total) * 100);
+					_onProgress();
 				}
 			};
-
-			function emitProgress() {
-				$rootScope.$broadcast(fileElementId+"-progress", progress);
+			function _onProgress() {
+				if (onProgress && typeof(onProgress)==='function') {
+					onProgress(progress);
+				}
 			}
-
 			//set content type
 			xhr.setRequestHeader('Content-Type', contentType);
-
 			//start the upload
 			xhr.send(uploadFile);
-
 		});
 	}
 
@@ -79,7 +89,8 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 	}
 
 	return {
-		uploadFile: uploadFile
+		uploadFile: uploadFile,
+		uploadFileDirectly: uploadFileDirectly
 	};
 
 }]);
