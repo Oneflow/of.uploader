@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+	<script src="../src/index.js"></script>
+</head>
+
+<body ng-app="testApp">
+	<div ng-controller="testController">
+
+		<input type="file" id="file-1"/>
+
+		<button ng-click="uploadNow()">Upload Now</button>
+
+		<span>{{progress}}</span>
+
+		<a ng-if="fetchUrl" href="{{fetchUrl}}">Download Here</a>
+	</div>
+
+<script>
+
+var testApp = angular.module('testApp', ['of.uploader']);
+
+testApp.controller('testController', ['$scope', '$http', 'ofUploader', function($scope, $http, ofUploader){
+
+	$scope.uploadNow = function() {
+		$http
+			.get("http://printbox-api-dev.oneflowcloud.com/api/file/uploadurls?mimeType=application%2Fpdf")
+			.success(function(response){
+				$scope.fetchUrl = response.fetch;
+				uploadFile(response.upload);
+			});
+	}
+
+	function uploadFile(uploadUrl) {
+		var contentType = "application/pdf";
+		$scope.progress = 0;
+
+		//use the service upload function to upload the file
+		ofUploader
+			.uploadFile("file-1", uploadUrl, contentType, $scope.progress)
+			.then(function(){
+				console.log("Upload Complete")
+			})
+			.catch(function(error){
+				console.log("File Upload Error: ", error);
+			});
+
+		//listen for this event if you want to update the UI
+		$scope.$on("file-1-progress", function(event, progress){
+			$scope.progress = progress;
+			$scope.$apply();
+		});
+
+	}
+
+}]);
+
+</script>
+</body>
+</html>
