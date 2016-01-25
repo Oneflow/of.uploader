@@ -158,7 +158,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		return lastFile;
 	}
 
-	function getQuene() {
+	function getQueue() {
 		return queue;
 	}
 
@@ -177,7 +177,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	}
 
 
-	function clearQuene() {
+	function clearQueue() {
 		queue = [];
 	}
 
@@ -236,10 +236,10 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 
 	_uploader = {
 		instance: uploader,
-		getQuene: getQuene,
+		getQueue: getQueue,
 		getLastChoosedFile: getLastChoosedFile,
 		addFile: addFile,
-		clearQuene: clearQuene,
+		clearQueue: clearQueue,
 		uploadAll: uploadAll,
 		getTotalProgress: getTotalProgress,
 		cancelUploading: cancelUploading,
