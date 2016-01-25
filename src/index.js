@@ -95,7 +95,7 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 
 }]);
 
-angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUploader', 'ofUploader', function($q, $http, FileUploader, ofUploader) {
+angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUploader', 'ofUploader', function($q, $http, FileUploader, ofUploader) {
 	var uploader = new FileUploader();
 	var _uploader = {};
 
@@ -146,7 +146,7 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 	}
 
 	var lastFile = {};
-	var quene = [];
+	var queue = [];
 
 	uploader.onAfterAddingFile = function(file) {
 		prepareFileToDisplay(file);
@@ -159,7 +159,7 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 	}
 
 	function getQuene() {
-		return quene;
+		return queue;
 	}
 
 	function addFile() {
@@ -168,8 +168,8 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 				lastFile.url = res.data.upload;
 				lastFile.fetchUrl = res.data.fetch;
 				lastFile.progress = 0;
-				quene.push(lastFile);
-				uploader.quene = quene;
+				queue.push(lastFile);
+				uploader.queue = queue;
 				_triggerActions(_onFileAddActions, lastFile);
 				resolve(res.data);
 			}).catch(reject);
@@ -178,12 +178,12 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 
 
 	function clearQuene() {
-		quene = [];
+		queue = [];
 	}
 
 	function uploadAll() {
 		_switchUploadProccess();
-		_.forEach(quene, function(file) {
+		_.forEach(queue, function(file) {
 			file.uploadProccessId = _getCurrentProcccessId();
 			file.onProgress = function(pr) {
 				if (this.uploadProccessId === _getCurrentProcccessId()) {
@@ -201,17 +201,17 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 
 	function getTotalProgress() {
 		var tp = 0;
-		_.forEach(quene, function(f) {
+		_.forEach(queue, function(f) {
 			tp += f.progress;
 		});
-		tp = Math.round(tp/quene.length);
+		tp = Math.round(tp/queue.length);
 		if (tp===100) _finishUploading();
 		return tp;
 	}
 
 	function cancelUploading() {
 		_switchUploadProccess();
-		_.forEach(quene, function(f) {
+		_.forEach(queue, function(f) {
 			f.progress = 0;
 			f.onProgress = null;
 		});
@@ -220,7 +220,7 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 
 	function _finishUploading() {
 		var files = [];
-		_.forEach(quene, function(f) {
+		_.forEach(queue, function(f) {
 			files.push({name: f.name, url: f.fetchUrl});
 		});
 		_switchUploadProccess();
@@ -256,10 +256,10 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 			_onFinishActions.push(action);
 		},
 		deleteFile: function(id) {
-			_.remove(quene,function(f,i) {
+			_.remove(queue,function(f,i) {
 				return i===id;
 			});
-			return quene;
+			return queue;
 		}
 	};
 
