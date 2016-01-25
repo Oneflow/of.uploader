@@ -1,6 +1,6 @@
 'use strict';
 
-var uploaderApp = angular.module('of.uploader', [])
+var uploaderApp = angular.module('of.uploader', []);
 
 uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope) {
 
@@ -95,7 +95,7 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 
 }]);
 
-angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUploader', 'ofUploader', function($q, $http, FileUploader, ofUploader) {
+angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUploader', 'ofUploader', 'ofUploaderQueueConfig', function($q, $http, FileUploader, ofUploader, ofUploaderQueueConfig) {
 	var uploader = new FileUploader();
 	var _uploader = {};
 
@@ -115,30 +115,19 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	}
 
 	function _getUrls(mimeType) {
-		//TO DO: make provider to determinate this url
-		var url = 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls';
+		var url = ofUploaderQueueConfig.uploadUrlsUrl;
 		return $http.get(url, {params : {mimeType: mimeType}});
 	}
 
 	function prepareFileToDisplay(file) {
 		file.name = file._file.name;
-		var iconType = 'file';
-		var picture = 'assets/images/file-default-picture.png';
+		var iconType = ofUploaderQueueConfig.defaultFileIconType;
+		var picture = ofUploaderQueueConfig.defaultFileImage;
 		var mimeType = file._file.type;
-		var fp = mimeType.split('/')[0];
-		var sp = mimeType.split('/')[1];
-		if (fp === 'image') {
-			iconType = 'image';
-			picture = 'assets/images/file-image-picture.png';
-		}
-		if (fp=='application') {
-			if (sp==='pdf') {
-				iconType = 'pdf';
-				picture = 'assets/images/file-pdf-picture.png';
-			}
-			if (sp==='x-stuffit' || sp==='zip') {
-				iconType = 'archive';
-				picture = 'assets/images/file-archive-picture.png';
+		for (var i=0; i<ofUploaderQueueConfig.fileTypesImages.length; i++) {
+			if (mimeType === ofUploaderQueueConfig.fileTypesImages[i].type) {
+				iconType = ofUploaderQueueConfig.fileTypesImages[i].iconType;
+				picture = ofUploaderQueueConfig.fileTypesImages[i].img;
 			}
 		}
 		file.iconType = iconType;
@@ -146,12 +135,14 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	}
 
 	var lastFile = {};
+	var _fileChosed = false;
 	var queue = [];
 
 	uploader.onAfterAddingFile = function(file) {
 		prepareFileToDisplay(file);
 		lastFile = file;
 		_triggerActions(_onFileChooseActions,file);
+		_fileChosed = true;
 	};
 
 	function getLastChoosedFile() {
@@ -164,15 +155,23 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 
 	function addFile() {
 		return $q(function(resolve, reject) {
-			_getUrls(lastFile._file.type).then(function(res) {
-				lastFile.url = res.data.upload;
-				lastFile.fetchUrl = res.data.fetch;
-				lastFile.progress = 0;
-				queue.push(lastFile);
-				uploader.queue = queue;
-				_triggerActions(_onFileAddActions, lastFile);
-				resolve(res.data);
-			}).catch(reject);
+			if (_fileChosed) {
+				_getUrls(lastFile._file.type).then(function(res) {
+					if (_fileChosed) {
+						lastFile.url = res.data.upload;
+						lastFile.fetchUrl = res.data.fetch;
+						lastFile.progress = 0;
+						queue.push(lastFile);
+						uploader.queue = angular.copy(queue);
+						_triggerActions(_onFileAddActions, lastFile);
+						_fileChosed = false;
+					}
+					resolve(res.data);
+				}).catch(reject);
+			}
+			else {
+				reject('no file choosed');
+			}
 		});
 	}
 
@@ -266,3 +265,39 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	return _uploader;
 }]);
 
+
+angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
+	var getUrlsUrl = 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls';
+
+	var defaultFileImage = 'assets/images/file-default-picture.png';
+	var defaultFileIconType = 'iconType';
+
+	var fileTypesImages = [
+		{type: 'image/png', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/jpg', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/jpeg', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/gif', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/tif', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'application/pdf', img: 'assets/images/file-pdf-picture.png', iconType: 'pdf'},
+		{type: 'application/x-stuffit', img: 'assets/images/file-archive-picture.png', iconType: 'archive'},
+		{type: 'application/zip', img: 'assets/images/file-archive-picture.png', iconType: 'archive'}
+	];
+
+	this.setConfig = function(configObj) {
+		getUrlsUrl = configObj.uploadUrlsUrl || getUrlsUrl;
+		defaultFileImage = configObj.defaultFileImage || defaultFileImage;
+		defaultFileIconType = configObj.defaultFileIconType || defaultFileIconType;
+		fileTypesImages = configObj.fileTypesImages || fileTypesImages;
+	};
+
+
+
+	this.$get = function() {
+		return {
+			uploadUrlsUrl: getUrlsUrl || 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls',
+			defaultFileImage: defaultFileImage || 'assets/images/file-default-picture.png',
+			defaultFileIconType: defaultFileIconType || 'file',
+			fileTypesImages: fileTypesImages || []
+		};
+	};
+}]);
