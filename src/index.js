@@ -115,6 +115,7 @@ angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUp
 	}
 
 	function _getUrls(mimeType) {
+		//TO DO: make provider to determinate this url
 		var url = 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls';
 		return $http.get(url, {params : {mimeType: mimeType}});
 	}
