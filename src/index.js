@@ -94,3 +94,174 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 	};
 
 }]);
+
+angular.module('of.uploader').factory('ofUploaderQuene', ['$q', '$http', 'FileUploader', 'ofUploader', function($q, $http, FileUploader, ofUploader) {
+	var uploader = new FileUploader();
+	var _uploader = {};
+
+	var _onFinishActions = [];
+	var _onFileAddActions = [];
+	var _onFileChooseActions = [];
+	var _onProgressActions = [];
+
+	var _uploadProcessId = 0;
+
+	function _getCurrentProcccessId() {
+		return _uploadProcessId;
+	}
+
+	function _switchUploadProccess() {
+		_uploadProcessId++;
+	}
+
+	function _getUrls(mimeType) {
+		var url = 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls';
+		return $http.get(url, {params : {mimeType: mimeType}});
+	}
+
+	function prepareFileToDisplay(file) {
+		file.name = file._file.name;
+		var iconType = 'file';
+		var picture = 'assets/images/file-default-picture.png';
+		var mimeType = file._file.type;
+		var fp = mimeType.split('/')[0];
+		var sp = mimeType.split('/')[1];
+		if (fp === 'image') {
+			iconType = 'image';
+			picture = 'assets/images/file-image-picture.png';
+		}
+		if (fp=='application') {
+			if (sp==='pdf') {
+				iconType = 'pdf';
+				picture = 'assets/images/file-pdf-picture.png';
+			}
+			if (sp==='x-stuffit' || sp==='zip') {
+				iconType = 'archive';
+				picture = 'assets/images/file-archive-picture.png';
+			}
+		}
+		file.iconType = iconType;
+		file.picture = picture;
+	}
+
+	var lastFile = {};
+	var quene = [];
+
+	uploader.onAfterAddingFile = function(file) {
+		prepareFileToDisplay(file);
+		lastFile = file;
+		_triggerActions(_onFileChooseActions,file);
+	};
+
+	function getLastChoosedFile() {
+		return lastFile;
+	}
+
+	function getQuene() {
+		return quene;
+	}
+
+	function addFile() {
+		return $q(function(resolve, reject) {
+			_getUrls(lastFile._file.type).then(function(res) {
+				lastFile.url = res.data.upload;
+				lastFile.fetchUrl = res.data.fetch;
+				lastFile.progress = 0;
+				quene.push(lastFile);
+				uploader.quene = quene;
+				_triggerActions(_onFileAddActions, lastFile);
+				resolve(res.data);
+			}).catch(reject);
+		});
+	}
+
+
+	function clearQuene() {
+		quene = [];
+	}
+
+	function uploadAll() {
+		_switchUploadProccess();
+		_.forEach(quene, function(file) {
+			file.uploadProccessId = _getCurrentProcccessId();
+			file.onProgress = function(pr) {
+				if (this.uploadProccessId === _getCurrentProcccessId()) {
+					this.progress = pr;
+					_triggerActions(_onProgressActions,getTotalProgress());
+				}
+			}.bind(file);
+			ofUploader.uploadFileDirectly(file._file, file.url, file._file.type, file.onProgress).catch(function(error) {
+				console.error('upload error: ', error);
+				cancelUploading();
+				console.warn('uploading canceled');
+			});
+		});
+	}
+
+	function getTotalProgress() {
+		var tp = 0;
+		_.forEach(quene, function(f) {
+			tp += f.progress;
+		});
+		tp = Math.round(tp/quene.length);
+		if (tp===100) _finishUploading();
+		return tp;
+	}
+
+	function cancelUploading() {
+		_switchUploadProccess();
+		_.forEach(quene, function(f) {
+			f.progress = 0;
+			f.onProgress = null;
+		});
+		_uploader.onProgress(getTotalProgress());
+	}
+
+	function _finishUploading() {
+		var files = [];
+		_.forEach(quene, function(f) {
+			files.push({name: f.name, url: f.fetchUrl});
+		});
+		_switchUploadProccess();
+		_triggerActions(_onFinishActions, files);
+	}
+
+
+	function _triggerActions(actions,args) {
+		_.forEach(actions, function(a) {
+			if (typeof(a)==='function') a(args);
+		});
+	}
+
+	_uploader = {
+		instance: uploader,
+		getQuene: getQuene,
+		getLastChoosedFile: getLastChoosedFile,
+		addFile: addFile,
+		clearQuene: clearQuene,
+		uploadAll: uploadAll,
+		getTotalProgress: getTotalProgress,
+		cancelUploading: cancelUploading,
+		onProgress: function(action) {
+			_onProgressActions.push(action);
+		},
+		onFileChoosed: function(action) {
+			_onFileChooseActions.push(action);
+		},
+		onFileAdded: function(action) {
+			_onFileAddActions.push(action);
+		},
+		onUploadFinished: function(action) {
+			_onFinishActions.push(action);
+		},
+		deleteFile: function(id) {
+			_.remove(quene,function(f,i) {
+				return i===id;
+			});
+			return quene;
+		}
+	};
+
+	return _uploader;
+}]);
+
