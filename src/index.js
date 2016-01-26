@@ -141,8 +141,8 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	uploader.onAfterAddingFile = function(file) {
 		prepareFileToDisplay(file);
 		lastFile = file;
-		_triggerActions(_onFileChooseActions,file);
 		_fileChosed = true;
+		_triggerActions(_onFileChooseActions,file);
 	};
 
 	function getLastChoosedFile() {
@@ -200,10 +200,12 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 
 	function getTotalProgress() {
 		var tp = 0;
-		_.forEach(queue, function(f) {
-			tp += f.progress;
-		});
-		tp = Math.round(tp/queue.length);
+		if (queue && queue.length) {
+			_.forEach(queue, function(f) {
+				tp += f.progress;
+			});
+			tp = Math.round(tp/queue.length);
+		}
 		if (tp===100) _finishUploading();
 		return tp;
 	}
