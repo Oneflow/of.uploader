@@ -146,8 +146,8 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		_triggerActions(_onFilesChooseActions, uploader.queue);
 	};
 
-	function getLastChoosedFile() {
-		return lastFile;
+	function getLastChoosedFiles() {
+		return uploader.queue;
 	}
 
 	function getQueue() {
@@ -233,7 +233,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	_uploader = {
 		instance: uploader,
 		getQueue: getQueue,
-		getLastChoosedFile: getLastChoosedFile,
+		getLastChoosedFiles: getLastChoosedFiles,
 		addFiles: addFiles,
 		clearQueue: clearQueue,
 		uploadAll: uploadAll,
