@@ -101,7 +101,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 
 	var _onFinishActions = [];
 	var _onFileAddActions = [];
-	var _onFileChooseActions = [];
+	var _onFilesChooseActions = [];
 	var _onProgressActions = [];
 
 	var _uploadProcessId = 0;
@@ -134,45 +134,40 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		file.picture = picture;
 	}
 
-	var lastFile = {};
+
 	var _fileChosed = false;
 	var queue = [];
 
-	uploader.onAfterAddingFile = function(file) {
-		prepareFileToDisplay(file);
-		lastFile = file;
-		_fileChosed = true;
-		_triggerActions(_onFileChooseActions,file);
+	uploader.onAfterAddingFile = function() {
+		_.forEach(uploader.queue, function(file) {
+			prepareFileToDisplay(file);
+			_fileChosed = true;
+		});
+		_triggerActions(_onFilesChooseActions, uploader.queue);
 	};
 
-	function getLastChoosedFile() {
-		return lastFile;
+	function getLastChoosedFiles() {
+		return uploader.queue;
 	}
 
 	function getQueue() {
 		return queue;
 	}
 
-	function addFile() {
-		return $q(function(resolve, reject) {
-			if (_fileChosed) {
-				_getUrls(lastFile._file.type).then(function(res) {
-					if (_fileChosed) {
-						lastFile.url = res.data.upload;
-						lastFile.fetchUrl = res.data.fetch;
-						lastFile.progress = 0;
-						queue.push(lastFile);
-						uploader.queue = angular.copy(queue);
-						_triggerActions(_onFileAddActions, lastFile);
-						_fileChosed = false;
-					}
-					resolve(res.data);
-				}).catch(reject);
-			}
-			else {
-				reject('no file choosed');
-			}
-		});
+	function addFiles() {
+		if (_fileChosed) {
+			_.forEach(uploader.queue, function(file) {
+				_getUrls(file._file.type).then(function(res) {
+					file.url = res.data.upload;
+					file.fetchUrl = res.data.fetch;
+					file.progress = 0;
+					queue.push(file);
+					_triggerActions(_onFileAddActions, file);
+				});
+			});
+			_fileChosed = false;
+			uploader.queue = [];
+		}
 	}
 
 
@@ -238,8 +233,8 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	_uploader = {
 		instance: uploader,
 		getQueue: getQueue,
-		getLastChoosedFile: getLastChoosedFile,
-		addFile: addFile,
+		getLastChoosedFiles: getLastChoosedFiles,
+		addFiles: addFiles,
 		clearQueue: clearQueue,
 		uploadAll: uploadAll,
 		getTotalProgress: getTotalProgress,
@@ -247,8 +242,8 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		onProgress: function(action) {
 			_onProgressActions.push(action);
 		},
-		onFileChoosed: function(action) {
-			_onFileChooseActions.push(action);
+		onFilesChoosed: function(action) {
+			_onFilesChooseActions.push(action);
 		},
 		onFileAdded: function(action) {
 			_onFileAddActions.push(action);
