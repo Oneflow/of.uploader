@@ -101,7 +101,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 
 	var _onFinishActions = [];
 	var _onFileAddActions = [];
-	var _onFilesChooseActions = [];
+	var _onFilesSelectedActions = [];
 	var _onProgressActions = [];
 
 	var _uploadProcessId = 0;
@@ -135,18 +135,18 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	}
 
 
-	var _fileChosed = false;
+	var _fileSelected = false;
 	var queue = [];
 
 	uploader.onAfterAddingFile = function() {
 		_.forEach(uploader.queue, function(file) {
 			prepareFileToDisplay(file);
-			_fileChosed = true;
+			_fileSelected = true;
 		});
-		_triggerActions(_onFilesChooseActions, uploader.queue);
+		_triggerActions(_onFilesSelectedActions, uploader.queue);
 	};
 
-	function getLastChoosedFiles() {
+	function getLastSelectedFiles() {
 		return uploader.queue;
 	}
 
@@ -155,7 +155,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	}
 
 	function addFiles() {
-		if (_fileChosed) {
+		if (_fileSelected) {
 			_.forEach(uploader.queue, function(file) {
 				_getUrls(file._file.type).then(function(res) {
 					file.url = res.data.upload;
@@ -165,7 +165,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 					_triggerActions(_onFileAddActions, file);
 				});
 			});
-			_fileChosed = false;
+			_fileSelected = false;
 			uploader.queue = [];
 		}
 	}
@@ -233,7 +233,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	_uploader = {
 		instance: uploader,
 		getQueue: getQueue,
-		getLastChoosedFiles: getLastChoosedFiles,
+		getLastSelectedFiles: getLastSelectedFiles,
 		addFiles: addFiles,
 		clearQueue: clearQueue,
 		uploadAll: uploadAll,
@@ -242,8 +242,8 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		onProgress: function(action) {
 			_onProgressActions.push(action);
 		},
-		onFilesChoosed: function(action) {
-			_onFilesChooseActions.push(action);
+		onFilesSelected: function(action) {
+			_onFilesSelectedActions.push(action);
 		},
 		onFileAdded: function(action) {
 			_onFileAddActions.push(action);
