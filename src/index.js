@@ -1,6 +1,6 @@
 'use strict';
 
-var uploaderApp = angular.module('of.uploader', [])
+var uploaderApp = angular.module('of.uploader', []);
 
 uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope) {
 
@@ -93,4 +93,208 @@ uploaderApp.factory('ofUploader', ['$q', '$rootScope', function ($q, $rootScope)
 		uploadFileDirectly: uploadFileDirectly
 	};
 
+}]);
+
+angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUploader', 'ofUploader', 'ofUploaderQueueConfig', function($q, $http, FileUploader, ofUploader, ofUploaderQueueConfig) {
+	var uploader = new FileUploader();
+	var _uploader = {};
+
+	var _onFinishActions = [];
+	var _onFileAddActions = [];
+	var _onFilesChooseActions = [];
+	var _onProgressActions = [];
+
+	var _uploadProcessId = 0;
+
+	function _getCurrentProcccessId() {
+		return _uploadProcessId;
+	}
+
+	function _switchUploadProccess() {
+		_uploadProcessId++;
+	}
+
+	function _getUrls(mimeType) {
+		var url = ofUploaderQueueConfig.uploadUrlsUrl;
+		return $http.get(url, {params : {mimeType: mimeType}});
+	}
+
+	function prepareFileToDisplay(file) {
+		file.name = file._file.name;
+		var iconType = ofUploaderQueueConfig.defaultFileIconType;
+		var picture = ofUploaderQueueConfig.defaultFileImage;
+		var mimeType = file._file.type;
+		for (var i=0; i<ofUploaderQueueConfig.fileTypesImages.length; i++) {
+			if (mimeType === ofUploaderQueueConfig.fileTypesImages[i].type) {
+				iconType = ofUploaderQueueConfig.fileTypesImages[i].iconType;
+				picture = ofUploaderQueueConfig.fileTypesImages[i].img;
+			}
+		}
+		file.iconType = iconType;
+		file.picture = picture;
+	}
+
+
+	var _fileChosed = false;
+	var queue = [];
+
+	uploader.onAfterAddingFile = function() {
+		_.forEach(uploader.queue, function(file) {
+			prepareFileToDisplay(file);
+			_fileChosed = true;
+		});
+		_triggerActions(_onFilesChooseActions, uploader.queue);
+	};
+
+	function getLastChoosedFiles() {
+		return uploader.queue;
+	}
+
+	function getQueue() {
+		return queue;
+	}
+
+	function addFiles() {
+		if (_fileChosed) {
+			_.forEach(uploader.queue, function(file) {
+				_getUrls(file._file.type).then(function(res) {
+					file.url = res.data.upload;
+					file.fetchUrl = res.data.fetch;
+					file.progress = 0;
+					queue.push(file);
+					_triggerActions(_onFileAddActions, file);
+				});
+			});
+			_fileChosed = false;
+			uploader.queue = [];
+		}
+	}
+
+
+	function clearQueue() {
+		queue = [];
+	}
+
+	function uploadAll() {
+		_switchUploadProccess();
+		_.forEach(queue, function(file) {
+			file.uploadProccessId = _getCurrentProcccessId();
+			file.onProgress = function(pr) {
+				if (this.uploadProccessId === _getCurrentProcccessId()) {
+					this.progress = pr;
+					_triggerActions(_onProgressActions,getTotalProgress());
+				}
+			}.bind(file);
+			ofUploader.uploadFileDirectly(file._file, file.url, file._file.type, file.onProgress).catch(function(error) {
+				console.error('upload error: ', error);
+				cancelUploading();
+				console.warn('uploading canceled');
+			});
+		});
+	}
+
+	function getTotalProgress() {
+		var tp = 0;
+		if (queue && queue.length) {
+			_.forEach(queue, function(f) {
+				tp += f.progress;
+			});
+			tp = Math.round(tp/queue.length);
+		}
+		if (tp===100) _finishUploading();
+		return tp;
+	}
+
+	function cancelUploading() {
+		_switchUploadProccess();
+		_.forEach(queue, function(f) {
+			f.progress = 0;
+			f.onProgress = null;
+		});
+		_uploader.onProgress(getTotalProgress());
+	}
+
+	function _finishUploading() {
+		var files = [];
+		_.forEach(queue, function(f) {
+			files.push({name: f.name, url: f.fetchUrl});
+		});
+		_switchUploadProccess();
+		_triggerActions(_onFinishActions, files);
+	}
+
+
+	function _triggerActions(actions,args) {
+		_.forEach(actions, function(a) {
+			if (typeof(a)==='function') a(args);
+		});
+	}
+
+	_uploader = {
+		instance: uploader,
+		getQueue: getQueue,
+		getLastChoosedFiles: getLastChoosedFiles,
+		addFiles: addFiles,
+		clearQueue: clearQueue,
+		uploadAll: uploadAll,
+		getTotalProgress: getTotalProgress,
+		cancelUploading: cancelUploading,
+		onProgress: function(action) {
+			_onProgressActions.push(action);
+		},
+		onFilesChoosed: function(action) {
+			_onFilesChooseActions.push(action);
+		},
+		onFileAdded: function(action) {
+			_onFileAddActions.push(action);
+		},
+		onUploadFinished: function(action) {
+			_onFinishActions.push(action);
+		},
+		deleteFile: function(id) {
+			_.remove(queue,function(f,i) {
+				return i===id;
+			});
+			return queue;
+		}
+	};
+
+	return _uploader;
+}]);
+
+
+angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
+	var getUrlsUrl = 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls';
+
+	var defaultFileImage = 'assets/images/file-default-picture.png';
+	var defaultFileIconType = 'iconType';
+
+	var fileTypesImages = [
+		{type: 'image/png', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/jpg', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/jpeg', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/gif', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'image/tif', img: 'assets/images/file-image-picture.png', iconType: 'image'},
+		{type: 'application/pdf', img: 'assets/images/file-pdf-picture.png', iconType: 'pdf'},
+		{type: 'application/x-stuffit', img: 'assets/images/file-archive-picture.png', iconType: 'archive'},
+		{type: 'application/zip', img: 'assets/images/file-archive-picture.png', iconType: 'archive'}
+	];
+
+	this.setConfig = function(configObj) {
+		getUrlsUrl = configObj.uploadUrlsUrl || getUrlsUrl;
+		defaultFileImage = configObj.defaultFileImage || defaultFileImage;
+		defaultFileIconType = configObj.defaultFileIconType || defaultFileIconType;
+		fileTypesImages = configObj.fileTypesImages || fileTypesImages;
+	};
+
+
+
+	this.$get = function() {
+		return {
+			uploadUrlsUrl: getUrlsUrl || 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls',
+			defaultFileImage: defaultFileImage || 'assets/images/file-default-picture.png',
+			defaultFileIconType: defaultFileIconType || 'file',
+			fileTypesImages: fileTypesImages || []
+		};
+	};
 }]);
