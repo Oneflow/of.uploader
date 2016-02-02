@@ -217,7 +217,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	function _finishUploading() {
 		var files = [];
 		_.forEach(queue, function(f) {
-			files.push({name: f.name, url: f.fetchUrl});
+			files.push(angular.copy(f));
 		});
 		_switchUploadProccess();
 		_triggerActions(_onFinishActions, files);
