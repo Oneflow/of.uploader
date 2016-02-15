@@ -183,6 +183,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 				if (this.uploadProccessId === _getCurrentProcccessId()) {
 					this.progress = pr;
 					_triggerActions(_onProgressActions,getTotalProgress());
+					_checkProgress();
 				}
 			}.bind(file);
 			ofUploader.uploadFileDirectly(file._file, file.url, file._file.type, file.onProgress).catch(function(error) {
@@ -193,6 +194,10 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		});
 	}
 
+	function _checkProgress() {
+		if (getTotalProgress()===100) _finishUploading();
+	}
+
 	function getTotalProgress() {
 		var tp = 0;
 		if (queue && queue.length) {
@@ -201,7 +206,6 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 			});
 			tp = Math.round(tp/queue.length);
 		}
-		if (tp===100) _finishUploading();
 		return tp;
 	}
 
