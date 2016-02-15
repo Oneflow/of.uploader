@@ -3,9 +3,7 @@ deployment:
         branch: master
         commands:
             - npm publish
-
-			# this will require a user with appropriate write permissions on github
-
+            # this will require a user with appropriate write permissions on github
             # - git config --global user.email "circleci@oneflowsystems.com"
             # - git config --global user.name "Circle CI"
             # - git checkout -b circle-ci-version-bump origin/development
