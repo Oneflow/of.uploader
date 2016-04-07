@@ -103,6 +103,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	var _onFileAddActions = [];
 	var _onFilesSelectedActions = [];
 	var _onProgressActions = [];
+	var _onValidationFailedActions = [];
 
 	var _uploadProcessId = 0;
 
@@ -134,14 +135,29 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		file.picture = picture;
 	}
 
+	function _checkFileType(file) {
+		var mimeType = file._file.type;
+		for (var i=0; i<ofUploaderQueueConfig.allowedTypes.length; i++) {
+			if (mimeType === ofUploaderQueueConfig.allowedTypes[i]) {
+				return true
+			}
+		}
+		return false;
+	}
 
 	var _fileSelected = false;
 	var queue = [];
 
 	uploader.onAfterAddingFile = function() {
 		_.forEach(uploader.queue, function(file) {
-			prepareFileToDisplay(file);
-			_fileSelected = true;
+			if (_checkFileType(file)) {
+				prepareFileToDisplay(file);
+				_fileSelected = true;
+			} else {
+				var f = uploader.queue[uploader.queue.length-1];
+				uploader.queue = uploader.queue.slice(0,uploader.queue.length-1);
+				_triggerActions(_onValidationFailedActions, f);
+			}
 		});
 		_triggerActions(_onFilesSelectedActions, uploader.queue);
 	};
@@ -255,6 +271,9 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 		onUploadFinished: function(action) {
 			_onFinishActions.push(action);
 		},
+		onValidationFailed: function(action) {
+			_onValidationFailedActions.push(action);
+		},
 		deleteFile: function(id) {
 			_.remove(queue,function(f,i) {
 				return i===id;
@@ -284,11 +303,23 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 		{type: 'application/zip', img: 'assets/images/file-archive-picture.png', iconType: 'archive'}
 	];
 
+	var allowedTypes = [
+		'image/png',
+		'image/jpg',
+		'image/jpeg',
+		'image/gif',
+		'image/tif',
+		'application/pdf',
+		'application/x-stuffit',
+		'application/zip'
+	];
+
 	this.setConfig = function(configObj) {
 		getUrlsUrl = configObj.uploadUrlsUrl || getUrlsUrl;
 		defaultFileImage = configObj.defaultFileImage || defaultFileImage;
 		defaultFileIconType = configObj.defaultFileIconType || defaultFileIconType;
 		fileTypesImages = configObj.fileTypesImages || fileTypesImages;
+		allowedTypes = configObj.allowedTypes || allowedTypes;
 	};
 
 
@@ -298,7 +329,8 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 			uploadUrlsUrl: getUrlsUrl || 'http://printbox-api-dev.oneflowcloud.com/api/ez/uploadurls',
 			defaultFileImage: defaultFileImage || 'assets/images/file-default-picture.png',
 			defaultFileIconType: defaultFileIconType || 'file',
-			fileTypesImages: fileTypesImages || []
+			fileTypesImages: fileTypesImages || [],
+			allowedTypes: allowedTypes || [],
 		};
 	};
 }]);
