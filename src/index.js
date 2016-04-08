@@ -137,12 +137,12 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 
 	function _checkFileType(file) {
 		var mimeType = file._file.type;
-		for (var i=0; i<ofUploaderQueueConfig.allowedTypes.length; i++) {
-			if (mimeType === ofUploaderQueueConfig.allowedTypes[i]) {
-				return true
+		for (var i=0; i<ofUploaderQueueConfig.disallowedTypes.length; i++) {
+			if (mimeType === ofUploaderQueueConfig.disallowedTypes[i]) {
+				return false
 			}
 		}
-		return false;
+		return true;
 	}
 
 	var _fileSelected = false;
@@ -303,23 +303,17 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 		{type: 'application/zip', img: 'assets/images/file-archive-picture.png', iconType: 'archive'}
 	];
 
-	var allowedTypes = [
-		'image/png',
-		'image/jpg',
-		'image/jpeg',
-		'image/gif',
-		'image/tif',
-		'application/pdf',
-		'application/x-stuffit',
-		'application/zip'
+	var disallowedTypes = [
+		'application/x-msdownload'
 	];
+
 
 	this.setConfig = function(configObj) {
 		getUrlsUrl = configObj.uploadUrlsUrl || getUrlsUrl;
 		defaultFileImage = configObj.defaultFileImage || defaultFileImage;
 		defaultFileIconType = configObj.defaultFileIconType || defaultFileIconType;
 		fileTypesImages = configObj.fileTypesImages || fileTypesImages;
-		allowedTypes = configObj.allowedTypes || allowedTypes;
+		disallowedTypes = configObj.disallowedTypes || disallowedTypes;
 	};
 
 
@@ -330,7 +324,7 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 			defaultFileImage: defaultFileImage || 'assets/images/file-default-picture.png',
 			defaultFileIconType: defaultFileIconType || 'file',
 			fileTypesImages: fileTypesImages || [],
-			allowedTypes: allowedTypes || [],
+			disallowedTypes: disallowedTypes || [],
 		};
 	};
 }]);
