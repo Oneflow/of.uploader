@@ -304,9 +304,9 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 	];
 
 	var disallowedTypes = [
-		'application/x-msdownload'
+		'application/x-msdownload',
+		'application/octet-stream'
 	];
-
 
 	this.setConfig = function(configObj) {
 		getUrlsUrl = configObj.uploadUrlsUrl || getUrlsUrl;
@@ -324,7 +324,7 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 			defaultFileImage: defaultFileImage || 'assets/images/file-default-picture.png',
 			defaultFileIconType: defaultFileIconType || 'file',
 			fileTypesImages: fileTypesImages || [],
-			disallowedTypes: disallowedTypes || [],
+			disallowedTypes: disallowedTypes || []
 		};
 	};
 }]);
