@@ -142,6 +142,12 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 				return false
 			}
 		}
+		var ext = file._file.name.split('.').pop();
+		for (var i=0; i<ofUploaderQueueConfig.disallowedExtensions.length; i++) {
+			if (ext === ofUploaderQueueConfig.disallowedExtensions[i]) {
+				return false
+			}
+		}
 		return true;
 	}
 
@@ -303,10 +309,11 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 		{type: 'application/zip', img: 'assets/images/file-archive-picture.png', iconType: 'archive'}
 	];
 
-	var disallowedTypes = [
-		'application/x-msdownload'
-	];
+	var disallowedTypes = [];
 
+	var disallowedExtensions =[
+		'exe'
+	];
 
 	this.setConfig = function(configObj) {
 		getUrlsUrl = configObj.uploadUrlsUrl || getUrlsUrl;
@@ -314,6 +321,7 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 		defaultFileIconType = configObj.defaultFileIconType || defaultFileIconType;
 		fileTypesImages = configObj.fileTypesImages || fileTypesImages;
 		disallowedTypes = configObj.disallowedTypes || disallowedTypes;
+		disallowedExtensions = configObj.disallowedExtensions || disallowedExtensions;
 	};
 
 
@@ -325,6 +333,7 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 			defaultFileIconType: defaultFileIconType || 'file',
 			fileTypesImages: fileTypesImages || [],
 			disallowedTypes: disallowedTypes || [],
+			disallowedExtensions: disallowedExtensions || []
 		};
 	};
 }]);

@@ -3,12 +3,11 @@ deployment:
         branch: master
         commands:
             - npm publish
-            # this will require a user with appropriate write permissions on github
-            # - git config --global user.email "circleci@oneflowsystems.com"
-            # - git config --global user.name "Circle CI"
-            # - git checkout -b circle-ci-version-bump origin/development
-            # - git pull
-            # - npm version patch
-            # - git push -u origin circle-ci-version-bump:development --follow-tags
-            # - git checkout master
-            # - git branch -D circle-ci-version-bump
+            - git config --global user.email "circleci@oneflowsystems.com"
+            - git config --global user.name "Circle CI"
+            - git checkout -b circle-ci-version-bump origin/development
+            - git pull
+            - npm version patch
+            - git push -u origin circle-ci-version-bump:development --follow-tags
+            - git checkout master
+            - git branch -D circle-ci-version-bump
