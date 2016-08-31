@@ -152,10 +152,6 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 			}
 		}
 
-		if (_.indexOf(ofUploaderQueueConfig.toBinaryExtensions, ext) === -1 && !file._file.type) {
-			return false;
-		}
-
 		return true;
 	}
 
@@ -167,7 +163,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	function _toBinaryConvertCheck(file) {
 		return $q(function(resolve, reject) {
 			var ext = file._file.name.split('.').pop();
-			if (_.indexOf(ofUploaderQueueConfig.toBinaryExtensions, ext) !== -1 && file._file.type!=='octet/stream') {
+			if (!file._file.type) {
 				_isConverting = true;
 				var reader = new FileReader();
 				reader.onload = function (event) {
@@ -358,10 +354,6 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 		'exe'
 	];
 
-	var toBinaryExtensions = [
-		'fp', 'dfa'
-	];
-
 	this.setConfig = function(configObj) {
 		getUrlsUrl = configObj.uploadUrlsUrl || getUrlsUrl;
 		defaultFileImage = configObj.defaultFileImage || defaultFileImage;
@@ -369,10 +361,7 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 		fileTypesImages = configObj.fileTypesImages || fileTypesImages;
 		disallowedTypes = configObj.disallowedTypes || disallowedTypes;
 		disallowedExtensions = configObj.disallowedExtensions || disallowedExtensions;
-		toBinaryExtensions = configObj.toBinaryExtensions || toBinaryExtensions;
 	};
-
-
 
 	this.$get = function() {
 		return {
@@ -381,8 +370,7 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 			defaultFileIconType: defaultFileIconType || 'file',
 			fileTypesImages: fileTypesImages || [],
 			disallowedTypes: disallowedTypes || [],
-			disallowedExtensions: disallowedExtensions || [],
-			toBinaryExtensions: toBinaryExtensions || []
+			disallowedExtensions: disallowedExtensions || []
 		};
 	};
 }]);
