@@ -136,36 +136,75 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 	}
 
 	function _checkFileType(file) {
+
 		var mimeType = file._file.type;
+		var ext = file._file.name.split('.').pop();
+
 		for (var i=0; i<ofUploaderQueueConfig.disallowedTypes.length; i++) {
 			if (mimeType === ofUploaderQueueConfig.disallowedTypes[i]) {
 				return false
 			}
 		}
-		var ext = file._file.name.split('.').pop();
+
 		for (var i=0; i<ofUploaderQueueConfig.disallowedExtensions.length; i++) {
 			if (ext === ofUploaderQueueConfig.disallowedExtensions[i]) {
 				return false
 			}
 		}
+
 		return true;
 	}
 
 	var _fileSelected = false;
 	var queue = [];
 
-	uploader.onAfterAddingFile = function() {
-		_.forEach(uploader.queue, function(file) {
-			if (_checkFileType(file)) {
-				prepareFileToDisplay(file);
-				_fileSelected = true;
+	var _isConverting = false;
+
+	function _toBinaryConvertCheck(file) {
+		return $q(function(resolve, reject) {
+			var ext = file._file.name.split('.').pop();
+			if (!file._file.type) {
+				_isConverting = true;
+				var reader = new FileReader();
+				reader.onload = function (event) {
+					var blob = new Blob([event.target.result], {type: "octet/stream"});
+					blob.name = file._file.name;
+					file._file = blob;
+					_isConverting = false;
+					resolve(file);
+				};
+				reader.onerror = function(error) {
+					_isConverting = false;
+					reject(error, file);
+				};
+				reader.readAsArrayBuffer(file._file);
 			} else {
+				resolve(file);
+			}
+		});
+	}
+
+	uploader.onAfterAddingFile = function() {
+		if (uploader.queue && uploader.queue.length)
+			_toBinaryConvertCheck(uploader.queue[uploader.queue.length-1]).then(function() {
+				_.forEach(uploader.queue, function(file) {
+					if (_checkFileType(file)) {
+						prepareFileToDisplay(file);
+						_fileSelected = true;
+					} else {
+						var f = uploader.queue[uploader.queue.length-1];
+						uploader.queue = uploader.queue.slice(0,uploader.queue.length-1);
+						if (!_isConverting)
+							_triggerActions(_onValidationFailedActions, f);
+					}
+				});
+				if (!_isConverting)
+					_triggerActions(_onFilesSelectedActions, uploader.queue);
+			}).catch(function() {
 				var f = uploader.queue[uploader.queue.length-1];
 				uploader.queue = uploader.queue.slice(0,uploader.queue.length-1);
 				_triggerActions(_onValidationFailedActions, f);
-			}
-		});
-		_triggerActions(_onFilesSelectedActions, uploader.queue);
+			});
 	};
 
 	function getLastSelectedFiles() {
@@ -323,8 +362,6 @@ angular.module('of.uploader').provider('ofUploaderQueueConfig', [function() {
 		disallowedTypes = configObj.disallowedTypes || disallowedTypes;
 		disallowedExtensions = configObj.disallowedExtensions || disallowedExtensions;
 	};
-
-
 
 	this.$get = function() {
 		return {
