@@ -234,6 +234,7 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 
 	function clearQueue() {
 		queue = [];
+		uploader.queue = queue;
 	}
 
 	function uploadAll() {
