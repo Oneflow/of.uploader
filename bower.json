@@ -1,6 +1,6 @@
 {
   "name": "of.uploader",
-  "version": "1.1.6",
+  "version": "1.1.8",
   "description": "loading files to print-box with percentage progress report",
   "homepage": "https://github.com/oneflow/of.uploader",
   "main": "src/index.js",
