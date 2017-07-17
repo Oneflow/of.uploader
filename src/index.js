@@ -230,14 +230,12 @@ angular.module('of.uploader').factory('ofUploaderQueue', ['$q', '$http', 'FileUp
 			uploader.queue = [];
 		}
 	}
+	
+    function clearQueue() {
+        queue = [];
+    }
 
-
-	function clearQueue() {
-		queue = [];
-		uploader.queue = queue;
-	}
-
-	function uploadAll() {
+    function uploadAll() {
 		_switchUploadProccess();
 		_.forEach(queue, function(file) {
 			file.uploadProccessId = _getCurrentProcccessId();
